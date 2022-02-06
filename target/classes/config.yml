@@ -1,0 +1,7 @@
+sql:
+  host: "192.168.178.241"
+  port: "3306"
+  database: "s30_test"
+  username: "u30_hpZnWFIu3s"
+  password: "ockp3JC@u+3r.30Ptrmc0k^5"
+debug: true
