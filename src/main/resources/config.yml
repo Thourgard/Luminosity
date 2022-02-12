@@ -5,3 +5,31 @@ sql:
   username: "u30_hpZnWFIu3s"
   password: "ockp3JC@u+3r.30Ptrmc0k^5"
 debug: true
+colourWeight: "&7<&f<&8<&a<&2<&3<&9<&1<&d<&5<&c<&4<&b<&e<&6<&0<&l"
+codexPageResponse:
+  success: "&7You have carefully studied the contents of the codex page and have gained new knowledge of the &5$PROFESSION_NAME$ &7profession."
+  fail: "&7You already poses all the knowledge this page has to offer..."
+metallurgist:
+  exp:
+    stone:
+      coal: 1
+      copper: 2
+      lapis: 3
+      iron: 4
+      gold: 5
+      redstone: 3
+      diamond: 7
+      emerald: 8
+    deepslate:
+      coal: 2
+      copper: 3
+      lapis: 4
+      iron: 5
+      gold: 6
+      redstone: 4
+      diamond: 8
+      emerald: 9
+    netherrack:
+      quartz: 6
+      gold: 8
+      ancientDebris: 12
