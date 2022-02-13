@@ -10,6 +10,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.ext.Locator2Impl;
 
@@ -51,7 +52,7 @@ public class CommandHandler implements CommandExecutor {
             } else if (args[0].equals("addDrop")) {
                 if (!((Player) sender).getInventory().getItemInMainHand().getType().equals(Material.AIR)) {
                     sender.sendMessage("DEBUG: The New Drop's ID = " +
-                            Profession.getProfession(args[1]).addRecipe(Integer.parseInt(args[2]),null, ((Player) sender).getInventory().getItemInMainHand()));
+                            Profession.getProfession(args[2]).addDrop(Integer.parseInt(args[3]), Integer.parseInt(args[4]), Material.getMaterial(args[1]), ((Player) sender).getInventory().getItemInMainHand()));
 
                 }
             } else if (args[0].equals("addRecipe")) {
@@ -75,7 +76,12 @@ public class CommandHandler implements CommandExecutor {
             }
             else if (args[0].equals("getCodexPage")) {
                 if (args[1].equals("drop") || args[1].equals("recipe")) {
-                    ((Player) sender).getInventory().addItem(Logic.getCodexPage(Integer.parseInt(args[3]), Profession.getProfession(args[2]), args[1].equals("recipe")));
+                    ItemStack item = Logic.getCodexPage(Integer.parseInt(args[3]), Profession.getProfession(args[2]), args[1].equals("recipe"));
+                    if (item == null) {
+                        sender.sendMessage(ChatColor.RED + "Given codex page ID does not exist");
+                        return true;
+                    }
+                    ((Player) sender).getInventory().addItem(item);
                 }
             }
             return true;

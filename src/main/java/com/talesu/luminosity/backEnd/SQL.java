@@ -151,24 +151,25 @@ public interface SQL {
             String[] data = null;
             if (rs.next()) data = rs.getString("Skillz").split(";;");
             if (data != null && !Arrays.toString(data).equals("[]")) {
-               String[] drop = data[0].split(":");
-               String[] recipe =  data[1].split(":");
-               if (drop.length > 1) {
-                   drop = drop[1].split(";");
+               ArrayList<String> drop = new ArrayList<>(Arrays.asList((data[0].split(":")[1].replace("[", "").replace("]", "").replace(" ", "")).split(",")));
+               ArrayList<String> recipe = new ArrayList<>(Arrays.asList((data[1].split(":")[1].replace("[", "").replace("]", "").replace(" ", "")).split(",")));
+               for (Profession profession : Profession.values()) {
+                   Luminosity.playerSkillz.get(uuid).putIfAbsent(profession, new HashMap<>());
+                   Luminosity.playerSkillz.get(uuid).get(profession).putIfAbsent("drop", new ArrayList<>());
+                   Luminosity.playerSkillz.get(uuid).get(profession).putIfAbsent("recipe", new ArrayList<>());
+               }
+               if (drop.size() > 1) {
                    for (String str : drop) {
-                       Profession profession = Profession.getProfessionByDrop(Integer.parseInt(str));
-                       Luminosity.playerSkillz.get(uuid).putIfAbsent(profession, new HashMap<>());
-                       Luminosity.playerSkillz.get(uuid).get(profession).putIfAbsent("drop", new ArrayList<>());
-                       Luminosity.playerSkillz.get(uuid).get(profession).get("drop").add(Integer.parseInt(str));
+                       int id = Integer.parseInt(str);
+                       Profession profession = Profession.getProfessionByDrop(id);
+                       Luminosity.playerSkillz.get(uuid).get(profession).get("drop").add(id);
                    }
                }
-               if (recipe.length > 1) {
-                   recipe = recipe[1].split(";");
+               if (recipe.size() > 1) {
                    for (String str : recipe) {
-                       Profession profession = Profession.getProfessionByRecipe(Integer.parseInt(str));
-                       Luminosity.playerSkillz.get(uuid).putIfAbsent(profession, new HashMap<>());
-                       Luminosity.playerSkillz.get(uuid).get(profession).putIfAbsent("recipe", new ArrayList<>());
-                       Luminosity.playerSkillz.get(uuid).get(profession).get("recipe").add(Integer.parseInt(str));
+                       int id = Integer.parseInt(str);
+                       Profession profession = Profession.getProfessionByRecipe(id);
+                       Luminosity.playerSkillz.get(uuid).get(profession).get("recipe").add(id);
                    }
                }
                if (Luminosity.debug) Bukkit.getServer().getLogger().info(ChatColor.GREEN + "DEBUG: Profession Skillz of " + Bukkit.getPlayer(uuid).getName() + " retrieved");

@@ -403,8 +403,16 @@ public interface Logic {
         lore.add(ChatColor.WHITE + "Profession: " + ChatColor.GRAY + profession.name);
         lore.add(ChatColor.WHITE + "Level: " + ChatColor.GRAY + ((int) profession.getRecipe(id).get("level")));
         itemMeta.setLore(lore);
-        if (isRecipe) itemMeta.setDisplayName(ChatColor.GRAY + "Codex Page: " + getItemName((ItemStack) profession.getRecipe(id).get("item")));
-        else itemMeta.setDisplayName(ChatColor.GRAY + "Codex Page: " + getItemName((ItemStack) profession.getDrop(id).get("item")));
+        if (isRecipe) {
+            if (profession.hasRecipe(id)) {
+                itemMeta.setDisplayName(ChatColor.GRAY + "Codex Page: " + getItemName((ItemStack) profession.getRecipe(id).get("item")));
+            } else return null;
+        }
+        else {
+            if (profession.hasDrop(id)) {
+                itemMeta.setDisplayName(ChatColor.GRAY + "Codex Page: " + getItemName((ItemStack) profession.getDrop(id).get("item")));
+            } else return null;
+        }
         item.setItemMeta(itemMeta);
         item.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
         item.addItemFlags(ItemFlag.HIDE_ENCHANTS);

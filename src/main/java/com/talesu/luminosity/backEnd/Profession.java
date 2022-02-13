@@ -50,6 +50,16 @@ public enum Profession {
         Luminosity.recipeData.get(this).put(id, map);
         return id;
     }
+    public int addDrop(int level, int chance, Material material, ItemStack item) {
+        int id = 0;
+        for (int i : Luminosity.blockDropData.get(this).keySet()) {
+            if (id<=i) id = i+1;
+        }
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("level", level); map.put("material", material); map.put("item", item); map.put("chance", chance);
+        Luminosity.blockDropData.get(this).put(id, map);
+        return id;
+    }
     public boolean giveSkill(Player player, int id, String type) {
         UUID uuid = player.getUniqueId();
         Luminosity.playerSkillz.putIfAbsent(uuid, new HashMap<>());
