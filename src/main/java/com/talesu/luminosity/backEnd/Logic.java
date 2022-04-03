@@ -1,6 +1,3 @@
-/*
-TODO: Crafting Inventory; Interaction with the crafting interface; Add proper ui;
- */
 package com.talesu.luminosity.backEnd;
 
 import com.talesu.luminosity.Luminosity;
@@ -23,6 +20,7 @@ public interface Logic {
     static void loadData() {
         loadRecipeData();
         SQL.loadBlockDropData();
+        SQL.loadPlayerPlacedBlocks();
         Profession.initialize();
         if (!Bukkit.getServer().getOnlinePlayers().isEmpty()) {
             for (Player player : Bukkit.getServer().getOnlinePlayers()) {
@@ -33,9 +31,8 @@ public interface Logic {
     static void saveData() {
         SQL.saveAllBlockDropData();
         SQL.saveRecipeData();
-        if (!Bukkit.getServer().getOnlinePlayers().isEmpty()) for (Player p : Bukkit.getServer().getOnlinePlayers()) {
-            Logic.savePlayerData(p);
-        }
+        SQL.savePlayerPlacedBlocks();
+        if (!Bukkit.getServer().getOnlinePlayers().isEmpty()) Bukkit.getServer().getOnlinePlayers().forEach(Logic::savePlayerData);
     }
     static void loadPlayerData(Player player) {
         final UUID uuid = player.getUniqueId();
@@ -60,7 +57,6 @@ public interface Logic {
                 }
             }
         }
-        Luminosity.playerPlacedBlocks.putIfAbsent(player.getUniqueId(), new ArrayList<>());
     }
     static void savePlayerData(Player player) {
         UUID uuid = player.getUniqueId();
@@ -247,7 +243,7 @@ public interface Logic {
         String title;
         switch (profession) {
             case METALLURGIST: title = "Ore Refinery"; break;
-            case SMITH: title = "Smithy"; break;
+            case BLACKSMITH: title = "Smithy"; break;
             case ALCHEMIST: title = "Alchemy Table"; break;
             default: title = "Professions Crafting";
         }
@@ -447,6 +443,7 @@ public interface Logic {
             }
         }
         player.getInventory().addItem(item);
+        profession.giveExp(player, ((int) profession.getRecipe(id).get("level")));
     }
     static public String getItemName(ItemStack i) {
         return i.getItemMeta().hasDisplayName() ? i.getItemMeta().getDisplayName() : WordUtils.capitalize(i.getType().name().replace("_", " ").toLowerCase());

@@ -1,3 +1,11 @@
+/*
+TODO Crafting Mini-Game;
+TODO Admin item creation menu;
+TODO Professions score;
+TODO Leaderboards;
+TODO Gathering prof limiter
+TODO Give-out permissions on prof score
+ */
 package com.talesu.luminosity;
 
 import com.talesu.luminosity.backEnd.Logic;
@@ -31,7 +39,7 @@ public final class Luminosity extends JavaPlugin {
 
     public static List<Material> profDropBlocks;
     public static List<String> materialList;
-    public static HashMap<UUID, List<Location>> playerPlacedBlocks;
+    public static HashMap<World, HashMap<Long, ArrayList<Location>>> playerPlacedBlocks;
 
     public static boolean debug;
 

@@ -25,7 +25,8 @@ public class CommandHandler implements CommandExecutor {
                     sender.sendMessage("/" + command + " set {professionsName} status/level");
                     return true;
                 } else if (args.length == 3 && args[2].equals("status")) {
-                    Logic.updateProfData(((Player) sender), Profession.getProfession(args[1]), !((boolean) Luminosity.playerData.get(((Player) sender).getUniqueId()).get(Profession.getProfession(args[1])).get("status")));
+                    Logic.updateProfData(((Player) sender), Profession.getProfession(args[1]),
+                            !((boolean) Luminosity.playerData.get(((Player) sender).getUniqueId()).get(Profession.getProfession(args[1])).get("status")));
                     return true;
                 } else if (args.length >= 4 && args[2].equals("level")) {
                     try {
@@ -83,6 +84,9 @@ public class CommandHandler implements CommandExecutor {
                     }
                     ((Player) sender).getInventory().addItem(item);
                 }
+            }
+            else if (args[0].equals("test")) {
+                sender.sendMessage(Luminosity.playerPlacedBlocks.toString());
             }
             return true;
         } catch (Exception e) {

@@ -1,10 +1,8 @@
 package com.talesu.luminosity.backEnd;
 
 import com.talesu.luminosity.Luminosity;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -42,44 +40,55 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onBlockBroken(BlockBreakEvent e) {
         Player player = e.getPlayer();
-        boolean prof;
+        boolean exp = false;
         boolean drop = true;
-        for (Profession profession : Logic.getPlayerProfList(player)) {
-            if (Profession.getHarvesters().contains(profession)) {
-                for (Material mat : profession.materialList) {
-                    if (e.getBlock().getBlockData().getMaterial().equals(mat)) {
-                        prof = true;
-                        List<Location> locList = Luminosity.playerPlacedBlocks.get(e.getPlayer().getUniqueId());
-                        if (locList != null) {
-                            for (Location loc : Luminosity.playerPlacedBlocks.get(e.getPlayer().getUniqueId())) {
-                                if (e.getBlock().getLocation().equals(loc))  {
-                                    prof = false; break;
-                                }
-                            }
-                        }
-                        if ((e.getPlayer().getInventory().getItemInMainHand().hasItemMeta() && e.getPlayer().getInventory().getItemInMainHand().getItemMeta().hasEnchants() &&
-                                e.getPlayer().getInventory().getItemInMainHand().getItemMeta().getEnchants().containsKey(Enchantment.SILK_TOUCH)) ||
-                                e.getPlayer().getInventory().getItemInMainHand().getType().equals(Material.SHEARS)) {
-                            drop = false;
-                            prof = false;
-                        }
-                        if (prof) {
-                            new BukkitRunnable() {
-                                @Override
-                                public void run() {
-                                    Logic.addProfExp(player, profession, 1);
-                                }
-                            }.runTaskLater(Luminosity.getInstance(), 1);
-                        }
-                        break;
-                    }
+        Profession profession = null;
+        for (Profession p : Logic.getPlayerProfList(player)) {
+            if (Profession.getHarvesters().contains(p)) {
+                if (p.getMaterialList().contains(e.getBlock().getBlockData().getMaterial())) {
+                    profession = p;
+                    exp = true;
+                    break;
                 }
-                break;
             }
+        }
+        if (profession==null) return;
+        if (Luminosity.playerPlacedBlocks.containsKey(e.getBlock().getWorld())) {
+            World world = e.getBlock().getWorld();
+            if (Luminosity.playerPlacedBlocks.get(world).containsKey(e.getBlock().getChunk().getChunkKey())) {
+                ArrayList<Location> list = Luminosity.playerPlacedBlocks.get(world).get(e.getBlock().getChunk().getChunkKey());
+                for (Location loc : list) {
+                   if (loc.getBlockX()==e.getBlock().getX()) {
+                       if (loc.getBlockZ()==e.getBlock().getZ()) {
+                           if (e.getBlock().getLocation().equals(loc)) {
+                               exp = false;
+                               drop = false;
+                               Luminosity.playerPlacedBlocks.get(world).get(e.getBlock().getChunk().getChunkKey()).remove(loc);
+                               break;
+                           }
+                       }
+                   }
+                }
+            }
+        }
+        if ((e.getPlayer().getInventory().getItemInMainHand().hasItemMeta() && e.getPlayer().getInventory().getItemInMainHand().getItemMeta().hasEnchants() &&
+                e.getPlayer().getInventory().getItemInMainHand().getItemMeta().getEnchants().containsKey(Enchantment.SILK_TOUCH)) ||
+                e.getPlayer().getInventory().getItemInMainHand().getType().equals(Material.SHEARS)) {
+            drop = false;
+            exp = false;
+        }
+        if (exp) {
+            final Profession p = profession;
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    Logic.addProfExp(player, p, 1);
+                }
+            }.runTaskLater(Luminosity.getInstance(), 1);
         }
         if (drop) {
             Material material = e.getBlock().getBlockData().getMaterial();
-            for (Profession profession : Profession.values()) {
+            if (Luminosity.playerSkillz.get(player.getUniqueId()).get(profession).get("drop")!=null) {
                 for (int id : Luminosity.playerSkillz.get(player.getUniqueId()).get(profession).get("drop")) {
                     if (profession.hasDrop(id)) {
                         if (material.equals(profession.getDrop(id).get("material"))) {
@@ -93,7 +102,6 @@ public class PlayerListener implements Listener {
                         break;
                     }
                 }
-                break;
             }
         }
     }
@@ -101,10 +109,14 @@ public class PlayerListener implements Listener {
     public void onBlockPlace(BlockPlaceEvent e) {
         boolean prof = false;
         for (Material mat : Luminosity.profDropBlocks) {
-            if (e.getBlock().getBlockData().getMaterial().equals(mat)) prof = true; break;
+            if (e.getBlockPlaced().getBlockData().getMaterial().equals(mat)) prof = true; break;
         }
         if (prof)  {
-            Luminosity.playerPlacedBlocks.get(e.getPlayer().getUniqueId()).add(e.getBlock().getLocation());
+            World world = e.getBlockPlaced().getWorld();
+            long chunk = e.getBlockPlaced().getChunk().getChunkKey();
+            Luminosity.playerPlacedBlocks.putIfAbsent(world, new HashMap<>());
+            Luminosity.playerPlacedBlocks.get(world).putIfAbsent(chunk, new ArrayList<>());
+            Luminosity.playerPlacedBlocks.get(world).get(chunk).add(e.getBlockPlaced().getLocation());
         }
     }
     @EventHandler
