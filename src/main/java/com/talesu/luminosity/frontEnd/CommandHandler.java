@@ -49,7 +49,7 @@ public class CommandHandler implements CommandExecutor {
                     Logic.updateProfData(p, profession, "recipe", null);
                 }
                 SQL.addRecord(p);
-                Logic.loadPlayerData(p);
+                SQL.loadProfData(p);
             } else if (args[0].equals("addDrop")) {
                 if (!((Player) sender).getInventory().getItemInMainHand().getType().equals(Material.AIR)) {
                     sender.sendMessage("DEBUG: The New Drop's ID = " +

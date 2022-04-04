@@ -2,7 +2,7 @@ name: Luminosity
 version: '${project.version}'
 main: com.talesu.luminosity.Luminosity
 api-version: 1.18
-prefix: [ Luminosity ]
+prefix: Luminosity
 softdepend: [ Talifix ]
 authors: [ Thourgard ]
 website: https://www.talesu.com

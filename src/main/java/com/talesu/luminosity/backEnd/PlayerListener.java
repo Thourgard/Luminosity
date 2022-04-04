@@ -25,7 +25,8 @@ import java.util.*;
 public class PlayerListener implements Listener {
     @EventHandler
     public void onPlayerJoinEvent(PlayerJoinEvent e) {
-        Logic.loadPlayerData(e.getPlayer());
+        SQL.addRecord(e.getPlayer());
+        SQL.loadProfData(e.getPlayer());
         if (Luminosity.debug) Bukkit.getServer().getLogger().info("DEBUG: Player Join Event Complete");
     }
     @EventHandler
@@ -219,7 +220,7 @@ public class PlayerListener implements Listener {
                     String type = item.getItemMeta().getPersistentDataContainer().get(Luminosity.mySkillTypeKey, PersistentDataType.STRING);
                     Profession profession = Profession.getProfession(item.getItemMeta().getPersistentDataContainer().get(Luminosity.myProfessionNameKey, PersistentDataType.STRING));
                     int id = item.getItemMeta().getPersistentDataContainer().get(Luminosity.mySkillIDKey, PersistentDataType.INTEGER);
-                    String success = ChatColor.translateAlternateColorCodes('&', Luminosity.getInstance().getConfig().getString("codexPageResponse.success").replace("$PROFESSION_NAME$", profession.name));
+                    String success = ChatColor.translateAlternateColorCodes('&', Luminosity.getInstance().getConfig().getString("codexPageResponse.success").replace("$PROFESSION_NAME$", profession.getName()));
                     String failure = ChatColor.translateAlternateColorCodes('&', Luminosity.getInstance().getConfig().getString("codexPageResponse.fail"));
                     if (profession.giveSkill(e.getPlayer(), id, type))  {
                         e.getPlayer().sendMessage(success);

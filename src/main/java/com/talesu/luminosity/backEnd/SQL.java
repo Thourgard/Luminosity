@@ -15,14 +15,19 @@ public interface SQL {
     static void createTable() {
         Connection connection = null;
         PreparedStatement ps = null;
-        String[] query = {"CREATE TABLE IF NOT EXISTS LuminosityPlayerData " +
-                "(UUID VARCHAR(100),Name VARCHAR(30), ProfessionData VARCHAR(100), Skillz VARCHAR(100), PRIMARY KEY(UUID))",
+        String[] query = {
+                "CREATE TABLE IF NOT EXISTS LuminosityPlayerData " +
+                        "(UUID VARCHAR(100),Name VARCHAR(30), Profession VARCHAR(30), Status INT(1), EXP INT(30), Level INT(10), PRIMARY KEY(UUID, Profession))",
                 "CREATE TABLE IF NOT EXISTS LuminosityBlockDropData " +
-                "(ID INT(32), Profession VARCHAR(20), Level INT(10), Chance INT(10), Block VARCHAR(10), BlockDrop text, PRIMARY KEY(ID))",
+                        "(ID VARCHAR(30), Profession VARCHAR(20), Level INT(10), Chance INT(10), Block VARCHAR(10), BlockDrop text, PRIMARY KEY(ID, Profession))",
                 "CREATE TABLE IF NOT EXISTS LuminosityPlayerPlacedBlocks " +
                         "(World VARCHAR(50), ChunkKey BIGINT, Location VARCHAR(30), PRIMARY KEY(World, Location))",
+                "CREATE TABLE IF NOT EXISTS LuminosityPlayerRecipesData " +
+                        "(UUID VARCHAR(100), Name VARCHAR(30), Profession VARCHAR(30), RecipeID VARCHAR(30), PRIMARY KEY(UUID, Profession, RecipeID))",
+                "CREATE TABLE IF NOT EXISTS LuminosityPlayerDropsData " +
+                        "(UUID VARCHAR(100), Name VARCHAR(30), Profession VARCHAR(30), DropID VARCHAR(30), PRIMARY KEY(UUID, Profession, DropID))",
                 "CREATE TABLE IF NOT EXISTS LuminosityRecipeData " +
-                        "(ID INT(32), Profession VARCHAR(20), Level INT(10), Item text, Ingredients text, Actions VARCHAR(100), PRIMARY KEY(ID))"};
+                        "(ID VARCHAR(30), Profession VARCHAR(20), Level INT(10), Item text, Ingredients text, Actions VARCHAR(100), PRIMARY KEY(ID, Profession))"};
 
         try {
             connection = Luminosity.hikari.getConnection();
@@ -109,7 +114,8 @@ public interface SQL {
         }
         return false;
     }
-    static String getProfData(UUID uuid) {
+    static void loadProfData(Player player) {
+        UUID uuid = player.getUniqueId();
         Connection connection = null;
         PreparedStatement ps = null;
         String query = "SELECT * FROM LuminosityPlayerData WHERE UUID=?";
@@ -117,8 +123,16 @@ public interface SQL {
             connection = Luminosity.hikari.getConnection();
             ps = connection.prepareStatement(query);
             ps.setString(1, uuid.toString());
+            Luminosity.playerData.putIfAbsent(uuid, new HashMap<>());
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getString("ProfessionData");
+            while (rs.next()) {
+                Profession profession = Profession.getProfession(rs.getString("Profession"));
+                Luminosity.playerData.get(uuid).putIfAbsent(profession, new HashMap<>());
+                for (int i=0; i<2; i++) {
+                    Luminosity.playerData.get(uuid).get(profession).put(new String[]{"exp","level"}[i], rs.getInt(new String[]{"EXP","Level"}[i]));
+                }
+                Luminosity.playerData.get(uuid).get(profession).put("status", rs.getInt("Status") == 1);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -137,7 +151,6 @@ public interface SQL {
                 }
             }
         }
-        return null;
     }
     static void loadProfSkillz(UUID uuid) {
         Connection connection = null;
@@ -279,7 +292,7 @@ public interface SQL {
             connection = Luminosity.hikari.getConnection();
             for (Profession profession : Profession.values()) {
                 ps = connection.prepareStatement(query);
-                ps.setString(2, profession.name);
+                ps.setString(2, profession.getName());
                 for (int id : profession.getRecipes().keySet()) {
                     ps.setInt(1, id);
                     ps.setInt(3, ((Integer) profession.getRecipe(id).get("level")));
@@ -314,7 +327,7 @@ public interface SQL {
         try {
             connection = Luminosity.hikari.getConnection();
             ps = connection.prepareStatement(query);
-            ps.setString(2, profession.name);
+            ps.setString(2, profession.getName());
             ps.setString(5, material.toString());
             ps.setString(6, itemDrop);
             ps.setInt(3, level);
@@ -354,7 +367,7 @@ public interface SQL {
                         ItemStack itemDrop = ((ItemStack) Luminosity.blockDropData.get(profession).get(id).get("item"));
                         Material material = ((Material) Luminosity.blockDropData.get(profession).get(id).get("material"));
                         ps = connection.prepareStatement(query);
-                        ps.setString(2, profession.name);
+                        ps.setString(2, profession.getName());
                         ps.setString(5, material.toString());
                         ps.setString(6, Logic.itemStackToString(itemDrop));
                         ps.setInt(3, level);
@@ -387,20 +400,19 @@ public interface SQL {
         UUID uuid = player.getUniqueId();
         Connection connection = null;
         PreparedStatement ps = null;
-        String query = "Update LuminosityPlayerData SET ProfessionData=? WHERE UUID=?";
+        String query = "UPDATE LuminosityPlayerData SET Status=?, EXP=?, Level=? WHERE UUID=? AND Profession=?";
         try {
             connection = Luminosity.hikari.getConnection();
             ps = connection.prepareStatement(query);
-            StringBuilder data = new StringBuilder();
+            ps.setString(4, player.getUniqueId().toString());
             for (Profession profession : Profession.values()) {
-                String profName = profession.name.split("")[0] + profession.name.split("")[1];
-                data.append(profName).append("=").append(((boolean) Luminosity.playerData.get(uuid).get(profession).get("status")) ? 1 : 0).append(";").append(Luminosity.playerData.get(uuid).get(profession).get("exp")).append(";").append(Luminosity.playerData.get(uuid).get(profession).get("level")).append(";;");
-                if (Luminosity.debug) Bukkit.getServer().getLogger().info(ChatColor.GREEN + "DEBUG: Serialized " + profession + " data for " + player.getName());
+                ps.setString(5, profession.getName());
+                ps.setInt(1, ((boolean) Luminosity.playerData.get(uuid).get(profession).get("status")) ? 1 : 0);
+                ps.setInt(2, ((int) Luminosity.playerData.get(uuid).get(profession).get("exp")));
+                ps.setInt(3, ((int) Luminosity.playerData.get(uuid).get(profession).get("level")));
+                ps.executeUpdate();
             }
-            ps.setString(1, data.toString());
-            ps.setString(2, uuid.toString());
-            ps.executeUpdate();
-            if (Luminosity.debug) Bukkit.getServer().getLogger().info(ChatColor.GREEN + "DEBUG: Saved ProfessionData for " + Objects.requireNonNull(Bukkit.getServer().getPlayer(uuid)).getName());
+            if (Luminosity.debug) Bukkit.getServer().getLogger().info(ChatColor.GREEN + "DEBUG: Saved " + Objects.requireNonNull(Bukkit.getServer().getPlayer(uuid)).getName() + " Player Data");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -421,78 +433,83 @@ public interface SQL {
         }
     }
     static void saveProfSkillz(UUID uuid, HashMap<Profession, HashMap<String, List<Integer>>> map) {
-        Connection connection = null;
-        PreparedStatement ps = null;
-        String query = "UPDATE LuminosityPlayerData SET Skillz=? WHERE UUID=?";
-        try {
-            connection = Luminosity.hikari.getConnection();
-            ArrayList<Integer> drop = new ArrayList<>();
-            ArrayList<Integer> recipe = new ArrayList<>();
-            if (exists(uuid)) {
-                for (Profession profession : map.keySet()) {
-                    if (!map.get(profession).get("drop").isEmpty()) drop.addAll(map.get(profession).get("drop"));
-                    if (!map.get(profession).get("recipe").isEmpty()) recipe.addAll(map.get(profession).get("recipe"));
-                    String data = "d:" + drop + ";;r:" + recipe;
-                    ps = connection.prepareStatement(query);
-                    ps.setString(1, data);
-                    ps.setString(2, uuid.toString());
-                    ps.executeUpdate();
-                    if (Luminosity.debug)
-                        Bukkit.getServer().getLogger().info(ChatColor.GREEN + "DEBUG: Saved skills for " + Bukkit.getPlayer(uuid).getName());
+        if (map!=null) {
+            Connection connection = null;
+            PreparedStatement ps = null;
+            String query = "UPDATE LuminosityPlayerData SET Skillz=? WHERE UUID=?";
+            try {
+                connection = Luminosity.hikari.getConnection();
+                ArrayList<Integer> drop = new ArrayList<>();
+                ArrayList<Integer> recipe = new ArrayList<>();
+                if (exists(uuid)) {
+                    for (Profession profession : map.keySet()) {
+                        if (!map.get(profession).get("drop").isEmpty()) drop.addAll(map.get(profession).get("drop"));
+                        if (!map.get(profession).get("recipe").isEmpty())
+                            recipe.addAll(map.get(profession).get("recipe"));
+                        String data = "d:" + drop + ";;r:" + recipe;
+                        ps = connection.prepareStatement(query);
+                        ps.setString(1, data);
+                        ps.setString(2, uuid.toString());
+                        ps.executeUpdate();
+                        if (Luminosity.debug)
+                            Bukkit.getServer().getLogger().info(ChatColor.GREEN + "DEBUG: Saved skills for " + Bukkit.getPlayer(uuid).getName());
+                    }
                 }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (connection != null) {
+                    try {
+                        connection.close();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-            if (ps != null) {
-                try {
-                    ps.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
+                if (ps != null) {
+                    try {
+                        ps.close();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
     }
     static void addRecord(Player player) {
-        Connection connection = null;
-        PreparedStatement ps = null;
-        String query = "INSERT IGNORE INTO LuminosityPlayerData" +
-                " (UUID,Name,ProfessionData,Skillz) VALUES(?,?,?,?)";
-        try {
-            connection = Luminosity.hikari.getConnection();
-            ps = connection.prepareStatement(query);
-            ps.setString(1, player.getUniqueId().toString());
-            ps.setString(2, player.getName());
-            StringBuilder data = new StringBuilder();
-            for (Profession profession : Profession.values()) {
-                String profName = profession.name.split("")[0] + profession.name.split("")[1];
-                data.append(profName).append("=").append("0;0;0;;");
-            }
-            ps.setString(3, data.toString());
-            ps.setString(4, "");
-            ps.executeUpdate();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
+        UUID uuid = player.getUniqueId();
+        if (!exists(uuid)) {
+            Connection connection = null;
+            PreparedStatement ps = null;
+            String query = "INSERT IGNORE INTO LuminosityPlayerData" +
+                    " (UUID,Name,Profession,Status,EXP,Level) VALUES(?,?,?,?,?,?)";
+            try {
+                connection = Luminosity.hikari.getConnection();
+                ps = connection.prepareStatement(query);
+                ps.setString(1, uuid.toString());
+                ps.setString(2, player.getName());
+                for (Profession profession : Profession.values()) {
+                    ps.setString(3, profession.getName());
+                    ps.setInt(4, 0);
+                    ps.setInt(5, 0);
+                    ps.setInt(6, 0);
+                    ps.executeUpdate();
                 }
-            }
-            if (ps != null) {
-                try {
-                    ps.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (connection != null) {
+                    try {
+                        connection.close();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (ps != null) {
+                    try {
+                        ps.close();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -534,7 +551,7 @@ public interface SQL {
     static void fullReset(Player player) {
         Connection connection = null;
         PreparedStatement ps = null;
-        String query = "DELETE FROM LuminosityPlayerData WHERE UUID=?";
+        String query = "DELETE * FROM LuminosityPlayerData WHERE UUID=?";
         try {
             connection = Luminosity.hikari.getConnection();
             ps = connection.prepareStatement(query);

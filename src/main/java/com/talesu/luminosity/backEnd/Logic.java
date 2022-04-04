@@ -24,39 +24,16 @@ public interface Logic {
         Profession.initialize();
         if (!Bukkit.getServer().getOnlinePlayers().isEmpty()) {
             for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                loadPlayerData(player);
+                SQL.addRecord(player);
+                SQL.loadProfData(player);
             }
         }
     }
     static void saveData() {
+        if (!Bukkit.getServer().getOnlinePlayers().isEmpty()) Bukkit.getServer().getOnlinePlayers().forEach(Logic::savePlayerData);
         SQL.saveAllBlockDropData();
         SQL.saveRecipeData();
         SQL.savePlayerPlacedBlocks();
-        if (!Bukkit.getServer().getOnlinePlayers().isEmpty()) Bukkit.getServer().getOnlinePlayers().forEach(Logic::savePlayerData);
-    }
-    static void loadPlayerData(Player player) {
-        final UUID uuid = player.getUniqueId();
-        if (!SQL.exists(uuid)) SQL.addRecord(player);
-        String data = SQL.getProfData(player.getUniqueId());
-        SQL.loadProfSkillz(player.getUniqueId());
-        Luminosity.playerData.putIfAbsent(uuid, new HashMap<>());
-        if (data != null) {
-            for (String str : data.split(";;")) {
-                String profName = str.split("=")[0];
-                boolean status = Integer.parseInt(str.split("=")[1].split(";")[0]) == 1;
-                int exp = Integer.parseInt(str.split("=")[1].split(";")[1]);
-                int level = Integer.parseInt(str.split("=")[1].split(";")[2]);
-                for (Profession profession : Profession.values()) {
-                    if(profession.name.startsWith(profName.split("")[0] + profName.split("")[1])) {
-                        if (Luminosity.debug) Bukkit.getServer().getLogger().info("Loading " + profession + " data for " + player.getName());
-                        Luminosity.playerData.get(uuid).putIfAbsent(profession, new HashMap<>());
-                        Luminosity.playerData.get(uuid).get(profession).put("status", status);
-                        Luminosity.playerData.get(uuid).get(profession).put("exp", exp);
-                        Luminosity.playerData.get(uuid).get(profession).put("level", level);
-                    }
-                }
-            }
-        }
     }
     static void savePlayerData(Player player) {
         UUID uuid = player.getUniqueId();
@@ -108,7 +85,7 @@ public interface Logic {
     static void addProfExp(Player player, Profession profession, int value) {
         final int exp = ((Integer) Luminosity.playerData.get(player.getUniqueId()).get(profession).get("exp"));
         Luminosity.playerData.get(player.getUniqueId()).get(profession).replace("exp", exp+value);
-        if (Luminosity.debug) Bukkit.getServer().getLogger().info("DEBUG: Added " + value +" exp to " + profession.name + " to " + player.getName());
+        if (Luminosity.debug) Bukkit.getServer().getLogger().info("DEBUG: Added " + value +" exp to " + profession.getName() + " to " + player.getName());
     }
     static String itemStackToString(ItemStack item) {
         YamlConfiguration cfg  = new YamlConfiguration();
@@ -251,7 +228,7 @@ public interface Logic {
         ArrayList<Integer> borders = new ArrayList<>(List.of(0,1,2,3,4,5,6,7,8,9,18,27,36,45,46,47,48,49,50,51,52,53,44,35,26,17));
         ItemStack filler = new ItemStack(Material.WHITE_STAINED_GLASS_PANE);
         ItemMeta fillerMeta = filler.getItemMeta();
-        fillerMeta.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.name);
+        fillerMeta.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.getName());
         filler.setItemMeta(fillerMeta);
         for (int i : borders) inv.setItem(i, createUIButton(filler, " "));
         for (int recipe : Luminosity.playerSkillz.get(player.getUniqueId()).get(profession).get("recipe")) { // loop though all the recipes of the player
@@ -261,7 +238,7 @@ public interface Logic {
                         ItemStack item = ((ItemStack) profession.getRecipe(recipe).get("item")).clone();
                         ItemMeta im = item.getItemMeta();
                         im.getPersistentDataContainer().set(Luminosity.mySkillIDKey, PersistentDataType.INTEGER, recipe);
-                        im.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.name);
+                        im.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.getName());
                         List<String> lore;
                         if (im.hasLore()) {
                             lore = im.getLore();
@@ -360,7 +337,7 @@ public interface Logic {
             if (i == 21) {
                 ItemStack t = new ItemStack(Material.RED_DYE);
                 ItemMeta tm = t.getItemMeta();
-                tm.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.name);
+                tm.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.getName());
                 t.setItemMeta(tm);
                 inv.setItem(i, createUIButton(t, ChatColor.RED + "Cancel"));
                 continue;
@@ -376,7 +353,7 @@ public interface Logic {
                     ItemStack t = new ItemStack(Material.LIME_DYE);
                     ItemMeta tm = t.getItemMeta();
                     tm.getPersistentDataContainer().set(Luminosity.mySkillIDKey, PersistentDataType.INTEGER, id);
-                    tm.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.name);
+                    tm.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.getName());
                     t.setItemMeta(tm);
                     inv.setItem(i, createUIButton(t, ChatColor.GREEN + "Confirm"));
                     continue;
@@ -390,13 +367,13 @@ public interface Logic {
         ItemStack item = new ItemStack(Material.PAPER);
         ItemMeta itemMeta = item.getItemMeta();
         itemMeta.getPersistentDataContainer().set(Luminosity.mySkillIDKey, PersistentDataType.INTEGER, id);
-        itemMeta.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.name);
+        itemMeta.getPersistentDataContainer().set(Luminosity.myProfessionNameKey, PersistentDataType.STRING, profession.getName());
         String type;
         if (isRecipe) type = "recipe";
         else type = "drop";
         itemMeta.getPersistentDataContainer().set(Luminosity.mySkillTypeKey, PersistentDataType.STRING, type);
         ArrayList<String> lore = new ArrayList<>();
-        lore.add(ChatColor.WHITE + "Profession: " + ChatColor.GRAY + profession.name);
+        lore.add(ChatColor.WHITE + "Profession: " + ChatColor.GRAY + profession.getName());
         lore.add(ChatColor.WHITE + "Level: " + ChatColor.GRAY + ((int) profession.getRecipe(id).get("level")));
         itemMeta.setLore(lore);
         if (isRecipe) {

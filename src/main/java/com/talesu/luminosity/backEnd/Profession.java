@@ -20,7 +20,7 @@ public enum Profession {
     private static final HashMap<String, Profession> byName = new HashMap<>();
     private static final HashMap<Integer, Profession> byDrop = new HashMap<>();
     private static final HashMap<Integer, Profession> byRecipe = new HashMap<>();
-    final String name;
+    final private String name;
     private ArrayList<Material> materialList;
     private HashMap<Integer, ItemStack> actionsList;
     public boolean getStatus(Player player) {
@@ -75,6 +75,9 @@ public enum Profession {
     public void giveExp(Player player, int amount) {
         int currentExp = ((int) Luminosity.playerData.get(player.getUniqueId()).get(this).get("exp"));
         Luminosity.playerData.get(player.getUniqueId()).get(this).replace("exp", (currentExp+amount));
+    }
+    public String getName() {
+        return name;
     }
     public boolean hasRecipe(int id) {
         return Luminosity.recipeData.get(this).containsKey(id);
